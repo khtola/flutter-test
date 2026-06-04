@@ -34,3 +34,20 @@ flutter build apk --debug
 To build a profile APK (useful for performance profiling):
 
 flutter build apk --profile
+
+
+# Initialize an empty Git repository
+git init
+
+# (Optional) Rename your default branch to 'main'
+git branch -M main
+
+
+# 1. Add the GitHub URL as your remote destination
+git remote add origin <PASTE_YOUR_COPIED_GITHUB_URL>
+
+# 2. Rename your main branch to match GitHub standards
+git branch -M main
+
+# 3. Upload your code to GitHub
+git push -u origin main
