@@ -1,27 +1,7 @@
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:first_app/models/product.dart';
 import 'package:first_app/product_detail_screen.dart';
-import 'package:first_app/styles/app_color.dart';
+import 'package:flutter/material.dart';
 import 'package:share/share.dart';
-
-// Product data model
-class Product {
-  final String imageUrl;
-  final String name;
-  final double price;
-  final Color color;
-  final String discount;
-  bool isWishlist;
-
-  Product({
-    required this.imageUrl,
-    required this.name,
-    required this.price,
-    required this.color,
-    required this.discount,
-    this.isWishlist = false,
-  });
-}
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});

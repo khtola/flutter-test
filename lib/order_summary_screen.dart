@@ -1,27 +1,131 @@
+import 'package:first_app/api/api_exception.dart';
+import 'package:first_app/models/product.dart';
+import 'package:first_app/services/order_service.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
-class OrderSummaryScreen extends StatelessWidget {
+class OrderSummaryScreen extends StatefulWidget {
   final double? totalPrice;
-  
-  const OrderSummaryScreen({super.key,  this.totalPrice});
+  final List<Product>? products;
+
+  const OrderSummaryScreen({
+    super.key,
+    this.totalPrice,
+    this.products,
+  });
+
+  @override
+  State<OrderSummaryScreen> createState() => _OrderSummaryScreenState();
+}
+
+class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
+  static final List<Product> _demoItems = [
+    Product(
+      imageUrl: 'assets/Screenshot1.png',
+      name: 'Product 1',
+      price: 29.99,
+      color: Colors.red,
+      discount: 'discount 70%',
+    ),
+    Product(
+      imageUrl: 'assets/Screenshot2.png',
+      name: 'Product 2',
+      price: 59.99,
+      color: Colors.blue,
+      discount: 'discount 50%',
+    ),
+  ];
+
+  late final List<Product> _items;
+  String? _paymentMethod;
+  bool _isPaying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _items = widget.products?.isNotEmpty == true ? widget.products! : _demoItems;
+  }
+
+  double get _total {
+    if (widget.totalPrice != null) {
+      return widget.totalPrice!;
+    }
+    return _items.fold<double>(0, (sum, item) => sum + item.price);
+  }
+
+  Future<void> _payNow() async {
+    if (_paymentMethod == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select a payment method')),
+      );
+      return;
+    }
+
+    setState(() => _isPaying = true);
+    try {
+      await Get.find<OrderService>().placeOrder(
+        items: _items,
+        paymentMethod: _paymentMethod!,
+        total: _total,
+      );
+      if (!mounted) {
+        return;
+      }
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Payment successful'),
+          content: Text(
+            'Paid \$${_total.toStringAsFixed(2)} with $_paymentMethod.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
+    } on ApiException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message)),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Payment failed: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isPaying = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
     final backgroundColor = theme.scaffoldBackgroundColor;
-    final buttonColor = theme.buttonTheme.colorScheme?.primary ?? Colors.blue;
-    
+    final buttonColor = theme.colorScheme.primary;
+    final formattedTotal = _total.toStringAsFixed(2);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text("Order Summary", style: TextStyle(color: textColor)),
+        title: Text('Order Summary', style: TextStyle(color: textColor)),
         backgroundColor: theme.appBarTheme.backgroundColor,
         centerTitle: true,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new, color: textColor),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Container(
@@ -29,96 +133,137 @@ class OrderSummaryScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            // Order Details Section
             Text(
-              "Order Details",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
+              'Order Details',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: textColor,
+              ),
             ),
             const SizedBox(height: 8.0),
-            // Example order items, you can populate this with actual data
-            ListTile(
-              leading: Image.network('https://via.placeholder.com/150'),
-              title: Text("Product 1", style: TextStyle(color: textColor)),
-              subtitle: Text("\$29.99", style: TextStyle(color: textColor)),
+            ..._items.map(
+              (item) => ListTile(
+                leading: _productImage(item.imageUrl),
+                title: Text(item.name, style: TextStyle(color: textColor)),
+                subtitle: Text(
+                  '\$${item.price.toStringAsFixed(2)}',
+                  style: TextStyle(color: textColor),
+                ),
+              ),
             ),
-            ListTile(
-              leading: Image.network('https://via.placeholder.com/150'),
-              title: Text("Product 2", style: TextStyle(color: textColor)),
-              subtitle: Text("\$59.99", style: TextStyle(color: textColor)),
-            ),
-            
-            // Total Price Section
             const SizedBox(height: 16.0),
             Text(
-              "Total",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
+              'Total',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: textColor,
+              ),
             ),
             const SizedBox(height: 8.0),
             Text(
-              // "\$${totalPrice.toStringAsFixed(2)}",
-              "34",
+              '\$$formattedTotal',
               style: TextStyle(fontSize: 18, color: textColor),
             ),
-            
-            // Payment Methods Section
             const SizedBox(height: 16.0),
             Text(
-              "Payment Methods",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
+              'Payment Methods',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: textColor,
+              ),
             ),
             const SizedBox(height: 8.0),
             Container(
-              padding: const EdgeInsets.all(16.0),
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(8.0)
+                color: theme.brightness == Brightness.dark
+                    ? Colors.grey.shade800
+                    : Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(8.0),
               ),
               child: Column(
                 children: [
-                  ListTile(
-                    leading: Icon(Icons.credit_card, color: textColor),
-                    title: Text("Credit Card", style: TextStyle(color: textColor)),
-                    onTap: () {
-                      // Handle payment method selection
-                    },
+                  RadioListTile<String>(
+                    value: 'Credit Card',
+                    groupValue: _paymentMethod,
+                    activeColor: buttonColor,
+                    secondary: Icon(Icons.credit_card, color: textColor),
+                    title: Text('Credit Card', style: TextStyle(color: textColor)),
+                    onChanged: _isPaying
+                        ? null
+                        : (value) => setState(() => _paymentMethod = value),
                   ),
-                   ListTile(
-                    leading: Icon(Icons.paypal, color: textColor),
-                    title: Text("PayPal", style: TextStyle(color: textColor)),
-                    onTap: () {
-                      // Handle payment method selection
-                    },
+                  RadioListTile<String>(
+                    value: 'PayPal',
+                    groupValue: _paymentMethod,
+                    activeColor: buttonColor,
+                    secondary: Icon(Icons.account_balance_wallet, color: textColor),
+                    title: Text('PayPal', style: TextStyle(color: textColor)),
+                    onChanged: _isPaying
+                        ? null
+                        : (value) => setState(() => _paymentMethod = value),
                   ),
-                ]
+                ],
               ),
-            ) 
-          ],
-        ),
-      ),
-      bottomNavigationBar: Container(
-        color: backgroundColor,
-        padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 24.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              // "Total: \$${totalPrice.toStringAsFixed(2)}",
-              "Total:  43.5",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // Handle payment process
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: buttonColor,
-                foregroundColor: textColor,
-              ),
-              child: const Text("Pay Now"),
             ),
           ],
         ),
       ),
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          color: backgroundColor,
+          padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 24.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Total: \$$formattedTotal',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
+              ),
+              ElevatedButton(
+                onPressed: _isPaying ? null : _payNow,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: buttonColor,
+                  foregroundColor: theme.colorScheme.onPrimary,
+                ),
+                child: _isPaying
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Pay Now'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _productImage(String url) {
+    if (url.startsWith('assets/')) {
+      return Image.asset(
+        url,
+        width: 56,
+        height: 56,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 40),
+      );
+    }
+
+    return Image.network(
+      url,
+      width: 56,
+      height: 56,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 40),
     );
   }
 }

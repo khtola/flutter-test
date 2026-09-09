@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:first_app/cart_screen.dart';
+import 'package:first_app/models/product.dart';
 import 'package:first_app/order_summary_screen.dart';
 import 'package:first_app/styles/app_color.dart';
 import 'package:flutter/material.dart';
@@ -185,7 +186,12 @@ class _ProductDetailState extends State<ProductDetail> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const OrderSummaryScreen(),
+                                  builder: (context) => OrderSummaryScreen(
+                                    products: widget.product == null
+                                        ? null
+                                        : [widget.product!],
+                                    totalPrice: widget.product?.price,
+                                  ),
                                 ),
                               );
                             },
