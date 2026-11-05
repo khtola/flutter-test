@@ -24,7 +24,7 @@ flutter build apk --release
 
 flutter clean
 flutter pub get
-flutter run
+flutter run 
 
 
 If you want to build a debug APK for testing, you can use:
@@ -51,3 +51,6 @@ git branch -M main
 
 # 3. Upload your code to GitHub
 git push -u origin main
+
+### after set new library 
+# បន្ថែមបន្ទាត់នេះ រួច run `flutter pub get`
