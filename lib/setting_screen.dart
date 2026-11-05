@@ -1,10 +1,35 @@
+import 'dart:io';
+import 'package:first_app/api/api_config.dart';
+import 'package:first_app/controllers/nav_controller.dart';
 import 'package:first_app/controllers/theme_controller.dart';
 import 'package:first_app/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 
-class SettingScreen extends StatelessWidget {
+class SettingScreen extends StatefulWidget {
   const SettingScreen({super.key});
+  @override
+  State<SettingScreen> createState() => _SettingScreenState();
+}
+
+class _SettingScreenState extends State<SettingScreen> {
+  File? _profileImage; // សម្រាប់រក្សាទុករូបភាពដែលបានរើស
+  final ImagePicker _picker = ImagePicker();
+
+  // មុខងារសម្រាប់រើសរូបភាពពីទូរស័ព្ទ
+  Future<void> _pickImage() async {
+    final XFile? pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery, // អាចដូរជា ImageSource.camera បើចង់ថតផ្ទាល់
+      imageQuality: 80, // កាត់បន្ថយទំហំរូបភាពកុំឱ្យធំពេក
+    );
+
+    if (pickedFile != null) {
+      setState(() {
+        _profileImage = File(pickedFile.path);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +37,7 @@ class SettingScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Setting'),
+        title: const Text('Account'),
         centerTitle: true,
       ),
       body: Obx(() {
@@ -36,12 +61,56 @@ class SettingScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.all(16.0),
             children: [
+              Center(
+                child: Column(
+                  children: [
+                    Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 55,
+                          backgroundColor: Colors.grey[300],
+                          backgroundImage: _profileImage != null
+                              ? FileImage(_profileImage!)
+                              : null,
+                          child: _profileImage == null
+                              ? Icon(Icons.person,
+                                  size: 65, color: Colors.grey[600])
+                              : null,
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: _pickImage,
+                            child: CircleAvatar(
+                              radius: 18,
+                              backgroundColor: Colors.blue,
+                              child: const Icon(Icons.camera_alt,
+                                  color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      ApiConfig.demoUsername, // បង្ហាញឈ្មោះ Demo ឬអាចប្តូរតាមចិត្តបាន
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
               SectionTitle('Common', textStyle: titleStyle),
               SettingsItem(
                 Icon(Icons.language, color: iconColor),
                 'Language',
                 'English',
-                onTap: ()=> _showLanguageDialog(context),
+                onTap: () => _showLanguageDialog(context),
                 titleStyle: titleStyle,
                 valueStyle: valueStyle,
               ),
@@ -60,14 +129,25 @@ class SettingScreen extends StatelessWidget {
               SettingsItem(
                 Icon(Icons.lock, color: iconColor),
                 'Login',
-                '',
+                '${ApiConfig.demoUsername} / ${ApiConfig.demoPassword}',
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen()));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const LoginScreen()),
+                  );
                 },
                 titleStyle: titleStyle,
                 valueStyle: valueStyle,
               ),
-        
+              SettingsItem(
+                Icon(Icons.local_shipping, color: iconColor),
+                'My orders',
+                'Track delivery',
+                onTap: () => Get.find<NavController>().goTo(1),
+                titleStyle: titleStyle,
+                valueStyle: valueStyle,
+              ),
               SectionTitle('Security', textStyle: titleStyle),
               SettingsItem(
                 Icon(Icons.key, color: iconColor),
@@ -101,6 +181,7 @@ void _showLanguageDialog(BuildContext context) {
     },
   );
 }
+
 void _showTwoFactorAuthDialog(BuildContext context, Color backgroundColor) {
   showModalBottomSheet(
     context: context,
@@ -112,7 +193,8 @@ void _showTwoFactorAuthDialog(BuildContext context, Color backgroundColor) {
           Navigator.of(context).pop();
         },
         child: Container(
-          color: Colors.transparent, // Make the container transparent to detect taps
+          color: Colors
+              .transparent, // Make the container transparent to detect taps
           child: Column(
             children: [
               const Spacer(),
@@ -171,7 +253,8 @@ void _showPasswordDialog(BuildContext context) {
     context: context,
     builder: (context) {
       return AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
         title: const Text('Change Password'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -238,7 +321,10 @@ class SettingsItem extends StatelessWidget {
   final TextStyle valueStyle;
 
   const SettingsItem(this.leadingIcon, this.title, this.value,
-      {super.key, required this.onTap, required this.titleStyle, required this.valueStyle});
+      {super.key,
+      required this.onTap,
+      required this.titleStyle,
+      required this.valueStyle});
 
   @override
   Widget build(BuildContext context) {

@@ -1,5 +1,6 @@
 import 'package:first_app/api/api_client.dart';
 import 'package:first_app/api/api_endpoints.dart';
+import 'package:first_app/api/api_exception.dart';
 import 'package:first_app/models/user.dart';
 import 'package:first_app/storage/local_storage.dart';
 
@@ -11,16 +12,21 @@ class AuthService {
 
   Future<User> login(String username, String password) async {
     final response = await _client.post(ApiEndpoints.login, {
-      'username': username,
+      'username': username.trim(),
       'password': password,
     });
     final data = _asMap(response);
     final user = User.fromJson(data);
     final token = user.token;
 
-    if (token != null && token.isNotEmpty) {
-      await _storage.saveToken(token);
+    if (token == null || token.isEmpty) {
+      throw const ApiException(
+        statusCode: 401,
+        message: 'Incorrect username or password',
+      );
     }
+
+    await _storage.saveToken(token);
     await _storage.saveUser(user.toJson());
     return user;
   }
@@ -33,7 +39,23 @@ class AuthService {
     }
   }
 
+  Future<User> fetchProfile() async {
+    final response = await _client.get(ApiEndpoints.profile);
+    final raw = response is Map ? response['data'] ?? response : response;
+    final user = User.fromJson(_asMap(raw));
+    await _storage.saveUser(user.toJson());
+    return user;
+  }
+
   bool get isLoggedIn => _storage.isLoggedIn;
+
+  User? get currentUser {
+    final data = _storage.user;
+    if (data == null) {
+      return null;
+    }
+    return User.fromJson(data);
+  }
 
   Map<String, dynamic> _asMap(dynamic response) {
     if (response is Map<String, dynamic>) {

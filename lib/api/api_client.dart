@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:first_app/api/api_config.dart';
 import 'package:first_app/api/api_exception.dart';
+import 'package:first_app/api/static_api.dart';
 import 'package:first_app/storage/local_storage.dart';
 import 'package:http/http.dart' as http;
 
@@ -22,12 +23,26 @@ class ApiClient {
     String endpoint, {
     Map<String, String>? query,
   }) {
+    if (ApiConfig.useStaticApi) {
+      return StaticApi.handle(
+        method: 'GET',
+        endpoint: endpoint,
+        query: query,
+      );
+    }
     return _send(
       () => _http.get(_uri(endpoint, query), headers: _headers()),
     );
   }
 
   Future<dynamic> post(String endpoint, [Map<String, dynamic>? data]) {
+    if (ApiConfig.useStaticApi) {
+      return StaticApi.handle(
+        method: 'POST',
+        endpoint: endpoint,
+        data: data,
+      );
+    }
     return _send(
       () => _http.post(
         _uri(endpoint),
@@ -38,6 +53,13 @@ class ApiClient {
   }
 
   Future<dynamic> put(String endpoint, [Map<String, dynamic>? data]) {
+    if (ApiConfig.useStaticApi) {
+      return StaticApi.handle(
+        method: 'PUT',
+        endpoint: endpoint,
+        data: data,
+      );
+    }
     return _send(
       () => _http.put(
         _uri(endpoint),
@@ -48,6 +70,9 @@ class ApiClient {
   }
 
   Future<dynamic> delete(String endpoint) {
+    if (ApiConfig.useStaticApi) {
+      return StaticApi.handle(method: 'DELETE', endpoint: endpoint);
+    }
     return _send(
       () => _http.delete(_uri(endpoint), headers: _headers()),
     );

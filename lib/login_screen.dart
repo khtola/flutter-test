@@ -1,5 +1,7 @@
+import 'package:first_app/api/api_config.dart';
 import 'package:first_app/api/api_exception.dart';
 import 'package:first_app/services/auth_service.dart';
+import 'package:first_app/styles/app_color.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -16,6 +18,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final AuthService _authService = Get.find<AuthService>();
   bool _isSubmitting = false;
+  bool _obscurePassword = true;
+  String? _error;
 
   @override
   void dispose() {
@@ -29,7 +33,10 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    setState(() => _isSubmitting = true);
+    setState(() {
+      _isSubmitting = true;
+      _error = null;
+    });
     try {
       await _authService.login(
         _usernameController.text,
@@ -41,20 +48,17 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Login successful')),
       );
+      Navigator.pop(context);
     } on ApiException catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
-      );
+      setState(() => _error = error.message);
     } catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login failed: $error')),
-      );
+      setState(() => _error = 'Login failed: $error');
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -70,66 +74,129 @@ class _LoginScreenState extends State<LoginScreen> {
         centerTitle: true,
       ),
       body: Center(
-        child: Card(
-          elevation: 8.0,
-          margin: const EdgeInsets.all(16.0),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Login',
-                    style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 20),
-                  TextFormField(
-                    controller: _usernameController,
-                    decoration: InputDecoration(
-                      labelText: 'Username',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.0),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Card(
+            elevation: 8.0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.0),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircleAvatar(
+                      radius: 32,
+                      backgroundColor: AppColor.primary,
+                      child: Icon(
+                        Icons.local_shipping,
+                        color: Colors.white,
+                        size: 32,
                       ),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Required';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: _passwordController,
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.0),
+                    const SizedBox(height: 16),
+                    const Text(
+                      ApiConfig.appName,
+                      style: TextStyle(
+                        fontSize: 24.0,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    obscureText: true,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Required';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _isSubmitting ? null : _login,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 50.0, vertical: 15.0),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.0),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Demo login: ${ApiConfig.demoUsername} / ${ApiConfig.demoPassword}',
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _usernameController,
+                      textInputAction: TextInputAction.next,
+                      decoration: InputDecoration(
+                        labelText: 'Username',
+                        prefixIcon: const Icon(Icons.person_outline),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Required';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) {
+                        if (!_isSubmitting) {
+                          _login();
+                        }
+                      },
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                          ),
+                          onPressed: () {
+                            setState(() => _obscurePassword = !_obscurePassword);
+                          },
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Required';
+                        }
+                        return null;
+                      },
+                    ),
+                    if (_error != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        _error!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isSubmitting ? null : _login,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColor.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 15.0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                        ),
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Login'),
                       ),
                     ),
-                    child: Text('Login'),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
