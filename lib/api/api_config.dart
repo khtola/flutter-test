@@ -12,6 +12,6 @@ class ApiConfig {
   static const String appName = 'ShopGo';
   static const String appTagline = 'Shop & Delivery';
 
-  static const String demoUsername = 'demo';
-  static const String demoPassword = '123456';
+  static const String demoUsername = 'tola';
+  static const String demoPassword = '12345';
 }
